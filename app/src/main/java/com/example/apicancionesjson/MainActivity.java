@@ -1,6 +1,8 @@
 package com.example.apicancionesjson;
 
 import android.os.Bundle;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -10,6 +12,10 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,6 +23,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -27,6 +34,36 @@ public class MainActivity extends AppCompatActivity {
     protected Thread tareaOnline;
     protected String infoOnline;
     protected  String contenidoStream = "";
+    protected ArrayList<String> listado = new ArrayList<String>(); //Para rellenar el listview
+    protected ArrayList<cancion> canciones = new ArrayList<cancion>(); //Almacenar info
+    protected ArrayAdapter<String> adaptador;
+
+
+    public void parsearJson (String json)
+    {
+
+        try {
+            JSONObject estructura = new JSONObject(json);
+            JSONArray listaCanciones = (JSONArray) estructura.getJSONArray("data");
+
+            for ( int i=0; i<listaCanciones.length(); i++){
+
+                JSONObject obj = listaCanciones.getJSONObject(i); //Con esto estoy creando un objeto json
+                //Accedo a cada uno de las partes del array
+                String nombre = obj.getString("nombre");
+                String myUrl = obj.getString("url");
+
+                listado.add(nombre);
+                cancion can = new cancion (nombre,myUrl);
+                canciones.add(can);
+
+            }
+
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
 
     public String getJsonAPIOnline()
     {
@@ -48,8 +85,7 @@ public class MainActivity extends AppCompatActivity {
             }
             br.close();
             con.disconnect();
-            texto1.setText(buffer.toString());
-
+            return buffer.toString();
 
 
         } catch (MalformedURLException e) {
@@ -58,8 +94,6 @@ public class MainActivity extends AppCompatActivity {
             throw new RuntimeException(e);
         }
 
-
-        return "";
     }
 
     @Override
@@ -86,7 +120,19 @@ public class MainActivity extends AppCompatActivity {
                 infoOnline = getJsonAPIOnline();
 
             //Parsear el json
+                parsearJson (infoOnline); //Le paso el json que recibo online
+
+
             //Mostrar en la interfaz gráfica
+                //Si queremos modificar dentro de thread la parte de la interfaz grafica, hacerla dentro de un runOnUiThread
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        //texto1.setText(infoOnline);
+                        adaptador= new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, listado);
+                        lista1.setAdapter(adaptador);
+                    }
+                });
             }
         };
 
