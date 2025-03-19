@@ -1,6 +1,9 @@
 package com.example.apicancionesjson;
 
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
@@ -37,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
     protected ArrayList<String> listado = new ArrayList<String>(); //Para rellenar el listview
     protected ArrayList<cancion> canciones = new ArrayList<cancion>(); //Almacenar info
     protected ArrayAdapter<String> adaptador;
+    protected MediaPlayer mp;
 
 
     public void parsearJson (String json)
@@ -109,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
 
         texto1 = (TextView) findViewById(R.id.texto1_main);
         lista1 = (ListView) findViewById(R.id.lista1_main);
+        mp = new MediaPlayer(); //Añado el media player
 
         //Lo que haya aqui se va a programar en paralelo al programa principal
         tareaOnline = new Thread()
@@ -131,6 +136,37 @@ public class MainActivity extends AppCompatActivity {
                         //texto1.setText(infoOnline);
                         adaptador= new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, listado);
                         lista1.setAdapter(adaptador);
+
+                        lista1.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+                                //Obtener la url en la lista que acabo de clicar
+                                String urlCancion = canciones.get(i).getUrl(); //de la lista de url obtenemos la url de la cancion que acabamos de clicar
+                                //si esta reproduciendo lo paro
+                                if (mp.isPlaying())
+                                {
+                                    mp.stop();
+                                }
+
+                                //Reproducion de un audio online
+                                mp = new MediaPlayer();
+                                mp.setAudioStreamType(AudioManager.STREAM_MUSIC); //indicar el tipo de reproducion
+                                try {
+                                    mp.setDataSource(urlCancion); //que cancion voy a reproducir
+                                    mp.prepareAsync(); //preparacion
+                                    mp.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                                        @Override
+                                        public void onPrepared(MediaPlayer mediaPlayer) {
+                                            texto1.setText("Nombre cancion: " +canciones.get(i).getNombre()+" \nURL: " + urlCancion);
+                                            mp.start(); //Reproduzco
+                                        }
+                                    });
+                                } catch (IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        });
                     }
                 });
             }
